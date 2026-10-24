@@ -1,0 +1,38 @@
+{% from "_macros.html" import icon %}
+{# Панель менеджера для демо-версии: показывает, как заявку видит агентство #}
+<button class="mgr-fab" type="button" data-mgr-open aria-haspopup="dialog">
+  {{ icon('inbox') }}<span>Панель менеджера</span><b class="mgr-fab__badge" data-mgr-badge hidden>0</b>
+</button>
+
+<dialog class="mgr" id="manager" aria-labelledby="mgr-title">
+  <div class="mgr__head">
+    <div>
+      <h2 id="mgr-title">Панель менеджера</h2>
+      <p>Так заявки видит агентство. В настоящем проекте это Telegram-бот и CRM на сервере, здесь всё работает прямо в браузере.</p>
+    </div>
+    <button class="round" type="button" data-mgr-close aria-label="Закрыть панель">{{ icon('close') }}</button>
+  </div>
+  <div class="mgr__tabs" role="tablist" aria-label="Разделы панели">
+    <button type="button" role="tab" id="mgr-tab-tg" aria-controls="mgr-pane-tg" aria-selected="true" data-mgr-tab="tg">{{ icon('send') }}<span>Telegram</span></button>
+    <button type="button" role="tab" id="mgr-tab-crm" aria-controls="mgr-pane-crm" aria-selected="false" data-mgr-tab="crm">{{ icon('chart') }}<span>CRM</span></button>
+  </div>
+  <div class="mgr__body">
+    <section class="mgr__pane mgr__pane--tg" id="mgr-pane-tg" role="tabpanel" aria-labelledby="mgr-tab-tg" data-mgr-pane="tg">
+      <p class="mgr__chat-title">{{ icon('users') }}<span>Менеджеры · чат с ботом</span></p>
+      <div class="mgr__feed" data-mgr-feed></div>
+    </section>
+    <section class="mgr__pane" id="mgr-pane-crm" role="tabpanel" aria-labelledby="mgr-tab-crm" data-mgr-pane="crm" hidden>
+      <div class="mgr__kpis" data-mgr-kpis></div>
+      <div class="mgr__table-wrap">
+        <table class="mgr__table">
+          <thead><tr><th scope="col">№</th><th scope="col">Клиент</th><th scope="col">Мероприятие</th><th scope="col">Смета</th><th scope="col">Статус</th></tr></thead>
+          <tbody data-mgr-rows></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="mgr__foot">
+    <p>Примеры помечены серым. Ваши заявки видны только вам.</p>
+    <button type="button" class="btn btn--line btn--sm" data-mgr-reset>Удалить мои заявки</button>
+  </div>
+</dialog>

@@ -1,0 +1,42 @@
+{#- Общий каркас страниц сайта.
+    fragment=True — сборка для просмотра внутри Claude (без тегов html/head/body),
+    inline_assets — стили и скрипты прямо в странице (демо-версия без сервера). -#}
+{%- from "_macros.html" import icon -%}
+{%- set page_title = page_title | default(agency.name ~ ": калькулятор сметы мероприятия") -%}
+{%- set page_description = page_description | default("Онлайн-калькулятор сметы корпоратива, конференции или выезда: выберите формат, число гостей и услуги и сразу узнайте ориентировочную стоимость. Заявка на звонок за минуту.") -%}
+{%- set fonts_classic = "family=Onest:wght@400;500;600;700&family=Prata" -%}
+{%- set fonts_bright = "family=Manrope:wght@500;600;700;800&family=Unbounded:wght@600;800" -%}
+{%- if skin_switcher or demo -%}
+  {%- set fonts = fonts_bright ~ "&" ~ fonts_classic -%}
+{%- elif skin == "bright" -%}
+  {%- set fonts = fonts_bright -%}
+{%- else -%}
+  {%- set fonts = fonts_classic -%}
+{%- endif -%}
+{% if not fragment %}<!doctype html>
+<html lang="ru" data-skin="{{ skin }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{% endif %}<title>{{ page_title }}</title>
+{% if fragment %}<meta name="claude:viewport-fit-sides" content="cover">
+{% endif %}<meta name="description" content="{{ page_description }}">
+{% if demo %}<script>try{var s=localStorage.getItem("smeta-skin");if(s==="classic"||s==="bright")document.documentElement.setAttribute("data-skin",s)}catch(e){}</script>
+{% endif %}{% block meta %}{% endblock %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{{ fonts }}&display=swap">
+{% if inline_assets %}<style>
+{{ inline_assets.css | safe }}
+</style>
+{% else %}<link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ (stylesheet | default('site.css'))) }}?v={{ asset_version }}">
+<noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/noscript.css') }}"></noscript>
+{% endif %}{% if not fragment %}</head>
+<body>
+{% endif %}
+{% block body %}{% endblock %}
+{% block scripts %}{% endblock %}
+{% if not fragment %}</body>
+</html>
+{% endif %}

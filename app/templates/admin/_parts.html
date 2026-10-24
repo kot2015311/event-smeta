@@ -1,0 +1,38 @@
+{# Повторяющиеся куски CRM #}
+{% macro status_pill(code) -%}
+<span class="pill pill--{{ code }}">{{ code | status_title }}</span>
+{%- endmacro %}
+
+{% macro lead_row(lead) -%}
+{%- set est = lead.estimate -%}
+<tr>
+  <td class="num"><a class="row-link" href="{{ url_for('admin.lead', lead_id=lead.id) }}">№{{ lead.id }}</a></td>
+  <td>
+    <b>{{ lead.name }}</b>{% if lead.source == 'sample' %} <span class="tag">тест</span>{% endif %}
+    <small>{{ lead.phone | phone }}</small>
+  </td>
+  <td>
+    {% if est %}{{ est.format.title }}<small>{{ est.guests | guests_nom }}, «{{ est.level.title }}»</small>{% else %}<span class="muted">без сметы</span>{% endif %}
+  </td>
+  <td class="num">{% if est %}{{ est | short_range }}{% else %}—{% endif %}</td>
+  <td>{{ status_pill(lead.status) }}</td>
+  <td class="num muted">{{ lead.created_at | dt('%d.%m %H:%M') }}</td>
+</tr>
+{%- endmacro %}
+
+{% macro leads_table(leads, empty_text="Заявок нет") -%}
+{% if leads %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th scope="col">№</th><th scope="col">Клиент</th><th scope="col">Мероприятие</th><th scope="col">Смета</th><th scope="col">Статус</th><th scope="col">Пришла</th></tr>
+    </thead>
+    <tbody>
+      {% for lead in leads %}{{ lead_row(lead) }}{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">{{ empty_text }}</p>
+{% endif %}
+{%- endmacro %}

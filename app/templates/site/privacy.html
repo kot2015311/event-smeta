@@ -1,0 +1,10 @@
+{% extends "site/_page.html" %}
+{% set page_title = "Политика конфиденциальности: " ~ agency.name %}
+{% set page_description = "Как " ~ agency.name ~ " обрабатывает персональные данные из заявок на сайте." %}
+{% block content %}
+<article class="prose">
+  <h1>Политика конфиденциальности</h1>
+  <p class="prose__lead">Здесь написано, какие данные вы оставляете в заявке, зачем они нам и как их удалить.</p>
+  {% include "site/_privacy_text.html" %}
+</article>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% set stylesheet = "admin.css" %}
+{% set page_title = (title | default("CRM")) ~ " · " ~ agency.name %}
+{% set page_description = "Рабочий раздел менеджеров" %}
+{% block meta %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block body %}
+<div class="shell">
+  <aside class="side" aria-label="Разделы CRM">
+    <a class="side__brand" href="{{ url_for('admin.dashboard') }}">
+      <span class="side__mark">{{ icon('sparkles') }}</span>
+      <span><b>{{ agency.name }}</b><small>заявки и цены</small></span>
+    </a>
+    <nav class="side__nav">
+      <a href="{{ url_for('admin.dashboard') }}"{% if nav == 'dashboard' %} aria-current="page"{% endif %}>{{ icon('chart') }}<span>Обзор</span></a>
+      <a href="{{ url_for('admin.leads') }}"{% if nav == 'leads' %} aria-current="page"{% endif %}>{{ icon('inbox') }}<span>Заявки</span></a>
+      <a href="{{ url_for('admin.prices') }}"{% if nav == 'prices' %} aria-current="page"{% endif %}>{{ icon('sliders') }}<span>Цены</span></a>
+    </nav>
+    <div class="side__foot">
+      <a class="side__link" href="{{ url_for('site.index') }}" target="_blank" rel="noopener">{{ icon('external') }}<span>Открыть сайт</span></a>
+      <form method="post" action="{{ url_for('admin.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="side__link" type="submit">{{ icon('logout') }}<span>Выйти</span></button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash" role="status">
+      {% for m in messages %}<p>{{ icon('check') }}<span>{{ m }}</span></p>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}?v={{ asset_version }}" defer></script>
+{% endblock %}

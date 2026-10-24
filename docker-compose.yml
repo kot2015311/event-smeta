@@ -1,0 +1,26 @@
+# Запуск всего проекта одной командой:  docker compose up -d --build
+# Сайт откроется на http://localhost:8000, CRM — на http://localhost:8000/admin
+
+services:
+  web:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - smeta-data:/app/instance   # база заявок переживает пересборку контейнера
+    restart: unless-stopped
+
+  bot:
+    build: .
+    command: ["python", "-m", "bot"]
+    env_file: .env
+    environment:
+      SITE_API_URL: http://web:8000   # внутри docker сайт доступен по имени сервиса
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  smeta-data:

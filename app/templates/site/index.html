@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+
+{% block meta %}
+{%- set site = config.SITE_URL -%}
+{% if site and not demo %}<link rel="canonical" href="{{ site }}/">
+<meta property="og:url" content="{{ site }}/">
+<meta property="og:image" content="{{ site }}{{ url_for('static', filename='img/og.png') }}">
+{% endif %}<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Сколько стоит мероприятие? Посчитайте за минуту">
+<meta property="og:description" content="Калькулятор сметы корпоратива, конференции или выезда и заявка на звонок с приложенной сметой.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{{ structured_data | tojson }}</script>
+{% endblock %}
+
+{% block body %}
+{%- set sched = prices.schedule -%}
+{%- set fmt_icons = {} -%}{% for f in prices.formats %}{% set _ = fmt_icons.update({f.id: f.icon}) %}{% endfor %}
+<a class="skip" href="#calc">Перейти к калькулятору</a>
+
+{% if skin_switcher or demo %}
+<div class="topbar">
+  <div class="wrap topbar__in">
+    {% if demo %}
+    <p class="topbar__note">{{ icon('info') }}<span>Демо-версия: заявки сохраняются только в вашем браузере и никуда не уходят.</span></p>
+    {% endif %}
+    {% if skin_switcher %}
+    <div class="skins" role="group" aria-label="Стиль оформления сайта">
+      <span class="skins__label">Стиль сайта</span>
+      {% for code, title in SKINS.items() %}
+      <button type="button" class="skins__btn" data-skin-set="{{ code }}" aria-pressed="{{ 'true' if code == skin else 'false' }}">{{ title }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if demo %}
+    <button class="topbar__mgr" type="button" data-mgr-open aria-haspopup="dialog">{{ icon('inbox') }}<span>Панель менеджера</span><b class="mgr-fab__badge" data-mgr-badge hidden>0</b></button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<header class="hdr">
+  <div class="wrap hdr__in">
+    <a class="logo" href="#top" aria-label="{{ agency.name }}, в начало страницы">
+      <span class="logo__mark">{{ icon('sparkles') }}</span><span class="logo__name">{{ agency.name }}</span>
+    </a>
+    <nav class="nav" aria-label="Разделы страницы">
+      <a href="#calc">Калькулятор</a>
+      <a href="#examples">Примеры</a>
+      <a href="#faq">Вопросы</a>
+      <a href="#contact">Контакты</a>
+    </nav>
+    <div class="hdr__end">
+      <p class="status{{ ' is-open' if status.open }}" data-status><i aria-hidden="true"></i><span>{{ status_text }}</span></p>
+      <a class="btn btn--primary btn--sm" href="#contact">Заказать звонок</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  {# ---------- Первый экран: заголовок и пример сметы ---------- #}
+  <section class="hero">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="kicker">Корпоративы, конференции, выезды и тимбилдинги</p>
+        <h1>Узнайте стоимость мероприятия <mark>за&nbsp;минуту</mark></h1>
+        <p class="lead">Выберите формат, число гостей и услуги. Калькулятор сразу покажет ориентировочную смету, а точную менеджер подготовит после звонка.</p>
+        <div class="hero__cta">
+          <a class="btn btn--primary btn--lg" href="#calc">Рассчитать смету</a>
+          <a class="btn btn--ghost btn--lg" href="#contact">Заказать звонок</a>
+        </div>
+        <ul class="facts">
+          <li>{{ icon('check') }}<span>Без регистрации и звонков</span></li>
+          <li>{{ icon('check') }}<span>Смета прикрепится к заявке</span></li>
+          <li>{{ icon('check') }}<span>Деловые мероприятия от {{ formats_min | money }}</span></li>
+        </ul>
+      </div>
+
+      {%- set se = sample.estimate -%}
+      <figure class="receipt">
+        <div class="receipt__sheet">
+          <div class="receipt__shadow">
+          <div class="receipt__paper">
+            <p class="receipt__head">Пример сметы</p>
+            <p class="receipt__title">{{ sample.title }}</p>
+            <p class="receipt__meta">«{{ se.level.title }}», {{ se.guests | guests_nom }}, {{ se.hours | hours_label }}</p>
+            <ul class="receipt__lines">
+              {% for line in se.lines[:4] %}
+              <li><span>{{ line.title }}</span><i></i><b>{{ line.sum | num }}</b></li>
+              {% endfor %}
+              {% set rest = se.lines[4:] %}
+              {% if rest %}
+              <li><span>Ещё {{ rest | length }} {{ plural(rest | length, 'позиция', 'позиции', 'позиций') }}</span><i></i><b>{{ rest | sum(attribute='sum') | num }}</b></li>
+              {% endif %}
+            </ul>
+            <p class="receipt__total"><span>Итого, ориентир</span><strong>≈&nbsp;{{ se.total | money }}</strong></p>
+            <p class="receipt__range">вилка {{ se.low | num }} – {{ se.high | money }}</p>
+          </div>
+          </div>
+          <p class="receipt__stamp" aria-hidden="true">без<br>звонка</p>
+        </div>
+        <figcaption class="sr-only">Пример сметы: {{ sample.title | lower }}, итого около {{ se.total | money }}</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      {% for _ in range(2) %}
+      <div class="marquee__group">
+        {% for item in texts.marquee %}<span>{{ item }}</span><i></i>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ---------- Калькулятор ---------- #}
+  <section class="sec" id="calc" aria-labelledby="calc-title">
+    <div class="wrap">
+      <header class="sec__head">
+        <h2 id="calc-title">Соберите смету</h2>
+        <p class="sec__lead">Меняйте параметры, и смета пересчитается сразу. Ничего не отправится, пока вы сами не нажмёте кнопку.</p>
+      </header>
+
+      <form class="calc" id="calc-form" method="get" action="{{ '' if demo else url_for('site.index') }}#calc" novalidate>
+        <input type="hidden" name="calc" value="1">
+        <div class="calc__main">
+
+          <fieldset class="step">
+            <legend class="step__head"><span class="step__n">1</span><span class="step__t">Формат мероприятия</span></legend>
+            <div class="grid grid--formats">
+              {% for f in prices.formats %}
+              <label class="opt opt--format">
+                <input class="opt__input" type="radio" name="f" value="{{ f.id }}"{{ ' checked' if est.format.id == f.id }}>
+                <span class="opt__card">
+                  <span class="opt__tick">{{ icon('check') }}</span>
+                  <span class="opt__icon">{{ icon(f.icon) }}</span>
+                  <span class="opt__title">{{ f.title }}</span>
+                  <span class="opt__desc">{{ f.desc }}</span>
+                  <span class="opt__price">от {{ f.min | money }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <fieldset class="step">
+            <legend class="step__head"><span class="step__n">2</span><span class="step__t">Гости и длительность</span></legend>
+            <div class="scale">
+              <div class="scale__col">
+                <p class="label" id="guests-label">Количество гостей</p>
+                <div class="guests">
+                  <button type="button" class="round js-only" data-guests-step="-1" aria-label="Меньше гостей">{{ icon('minus') }}</button>
+                  <output class="guests__val" id="guests-out" for="guests" aria-live="polite"><b data-out="guests">{{ est.guests }}</b> <span data-out="guests-word">{{ plural(est.guests, 'гость', 'гостя', 'гостей') }}</span></output>
+                  <button type="button" class="round js-only" data-guests-step="1" aria-label="Больше гостей">{{ icon('plus') }}</button>
+                </div>
+                <input class="range" id="guests" type="range" name="g" min="{{ prices.guests.min }}" max="{{ prices.guests.max }}" step="{{ prices.guests.step }}" value="{{ est.guests }}" aria-labelledby="guests-label">
+                <div class="range__scale" aria-hidden="true"><span>{{ prices.guests.min }}</span><span>{{ prices.guests.max }}+</span></div>
+                <div class="chips js-only" role="group" aria-label="Быстрый выбор числа гостей">
+                  {% for n in prices.guests.chips %}
+                  <button type="button" class="chip chip--btn" data-guests="{{ n }}" aria-pressed="{{ 'true' if est.guests == n else 'false' }}">{{ n }}</button>
+                  {% endfor %}
+                </div>
+                <p class="hint" data-guests-max{{ ' hidden' if est.guests < prices.guests.max }}>Если гостей больше {{ prices.guests.max }}, посчитаем индивидуально: оставьте заявку.</p>
+              </div>
+              <div class="scale__col">
+                <p class="label" id="hours-label">Длительность</p>
+                <div class="chips chips--hours" role="radiogroup" aria-labelledby="hours-label">
+                  {% for d in prices.hours %}
+                  <label class="chip"><input class="chip__input" type="radio" name="h" value="{{ d.h }}"{{ ' checked' if est.hours == d.h }}><span>{{ d.label }}</span></label>
+                  {% endfor %}
+                </div>
+                <p class="scale__note">От длительности зависят организация, работа ведущего и промоперсонала.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="step">
+            <legend class="step__head"><span class="step__n">3</span><span class="step__t">Уровень организации</span></legend>
+            <div class="grid grid--levels">
+              {% for lv in prices.levels %}
+              <label class="opt opt--level">
+                <input class="opt__input" type="radio" name="l" value="{{ lv.id }}"{{ ' checked' if est.level.id == lv.id }}>
+                <span class="opt__card">
+                  <span class="opt__tick">{{ icon('check') }}</span>
+                  <span class="opt__tag">{{ lv.tag }}</span>
+                  <span class="opt__title">{{ lv.title }}</span>
+                  <span class="opt__desc">{{ lv.desc }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <fieldset class="step">
+            <legend class="step__head"><span class="step__n">4</span><span class="step__t">Дополнительные услуги</span></legend>
+            <p class="step__hint">Отметьте нужное или пропустите этот шаг.</p>
+            <div class="grid grid--addons">
+              {% for a in addons %}
+              <label class="opt opt--addon">
+                <input class="opt__input" type="checkbox" name="a" value="{{ a.id }}"{{ ' checked' if a.id in est.addons }}>
+                <span class="opt__card">
+                  <span class="opt__icon">{{ icon(a.icon) }}</span>
+                  <span class="opt__text"><span class="opt__title">{{ a.title }}</span><span class="opt__desc">{{ a.hint }}</span></span>
+                  <span class="opt__tick">{{ icon('check') }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <noscript><button class="btn btn--primary btn--lg" type="submit">Пересчитать смету</button></noscript>
+        </div>
+
+        <aside class="summary" id="summary" aria-labelledby="summary-title">
+          <p class="summary__label" id="summary-title">Ваша смета</p>
+          <p class="summary__range" aria-live="polite"><span data-out="range">{{ est.low | num }} – {{ est.high | num }}</span> <small>₽</small></p>
+          <p class="summary__sub" data-out="sub">≈ <b>{{ est.total | money }}</b>, <b>{{ est.per_guest | money }}</b> на гостя</p>
+          <p class="summary__meta" data-out="meta">{{ est_text }}</p>
+          <ul class="summary__lines" data-out="lines">
+            {% for line in est.lines %}
+            <li><span>{{ line.title }}<small>{{ line.note }}</small></span><b>{{ line.sum | money }}</b></li>
+            {% endfor %}
+          </ul>
+          <a class="btn btn--light btn--lg btn--block" href="#contact" data-attach-estimate>Получить точный расчёт</a>
+          <button class="btn btn--quiet btn--block js-only" type="button" data-copy-estimate>{{ icon('copy') }}<span>Скопировать смету</span></button>
+          <p class="summary__note">Цены ориентировочные: итог зависит от площадки, даты и подрядчиков.</p>
+        </aside>
+
+        <div class="mbar">
+          <a class="mbar__sum" href="#summary"><small>Ориентир</small><b data-out="short">{{ est | short_range }}</b></a>
+          <a class="btn btn--light btn--sm" href="#contact" data-attach-estimate>Заказать звонок</a>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {# ---------- Готовые примеры ---------- #}
+  <section class="sec sec--tint" id="examples" aria-labelledby="examples-title">
+    <div class="wrap">
+      <header class="sec__head">
+        <h2 id="examples-title">Готовые расчёты для типовых задач</h2>
+        <p class="sec__lead">Откройте пример в калькуляторе и подстройте под себя: число гостей, услуги и уровень.</p>
+      </header>
+      <div class="cards3">
+        {% for p in presets %}
+        {%- set e = p.estimate -%}
+        <article class="preset preset--{{ loop.index }}">
+          <span class="preset__icon">{{ icon(fmt_icons[e.format.id]) }}</span>
+          <h3 class="preset__title">{{ p.title }}</h3>
+          <p class="preset__facts">{{ e.format.title }}, «{{ e.level.title }}», {{ e.hours | hours_label }}</p>
+          <p class="preset__incl">{{ e.lines[1:] | map(attribute='title') | map('lower') | join(', ') }}</p>
+          <p class="preset__price"><small>ориентир</small><b>{{ e.low | num }} – {{ e.high | money }}</b></p>
+          <a class="btn btn--line" href="?f={{ e.format.id }}&amp;g={{ e.guests }}&amp;h={{ e.hours }}&amp;l={{ e.level.id }}&amp;a={{ e.addons | join(',') }}#calc" data-preset="{{ p.id }}">Открыть в калькуляторе</a>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ---------- Что входит ---------- #}
+  <section class="sec sec--deep" id="included" aria-labelledby="included-title">
+    <div class="wrap">
+      <header class="sec__head">
+        <h2 id="included-title">Всё для мероприятия в одной смете</h2>
+        <p class="sec__lead">Один менеджер собирает программу, команду и подрядчиков. Вам не нужно обзванивать десяток компаний.</p>
+      </header>
+      <ul class="included">
+        {% for ico, title, text in texts.included %}
+        <li class="included__item">
+          <span class="included__icon">{{ icon(ico) }}</span>
+          <h3>{{ title }}</h3>
+          <p>{{ text }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  {# ---------- Как проходит заказ ---------- #}
+  <section class="sec" id="process" aria-labelledby="process-title">
+    <div class="wrap">
+      <header class="sec__head">
+        <h2 id="process-title">Как проходит заказ</h2>
+      </header>
+      <ol class="process">
+        {% for title, text in texts.process %}
+        <li class="process__item">
+          <span class="process__n">{{ loop.index }}</span>
+          <h3>{{ title }}</h3>
+          <p>{{ text }}</p>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </section>
+
+  {# ---------- Вопросы ---------- #}
+  <section class="sec sec--tint" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq">
+      <header class="sec__head">
+        <h2 id="faq-title">Частые вопросы</h2>
+      </header>
+      <div class="faq__list">
+        {% for q, a in texts.faq %}
+        <details class="faq__item"{{ ' open' if loop.first }}>
+          <summary><span>{{ q }}</span>{{ icon('plus', 'ico faq__icon') }}</summary>
+          <p>{{ a }}</p>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ---------- Контакты и заявка ---------- #}
+  <section class="sec sec--contact" id="contact" aria-labelledby="contact-title">
+    <div class="wrap contact">
+      <div class="contact__info">
+        <h2 id="contact-title">Закажите звонок</h2>
+        <p class="lead">Оставьте контакты, и менеджер подготовит точную смету. Расчёт из калькулятора прикрепится к заявке.</p>
+        <ul class="ctc">
+          <li><span class="ctc__icon">{{ icon('phone') }}</span><span><small>Телефон</small><b>{{ agency.phone }}</b></span></li>
+          <li><span class="ctc__icon">{{ icon('send') }}</span><span><small>Telegram</small><b>{{ agency.telegram }}</b></span></li>
+          <li><span class="ctc__icon">{{ icon('mail') }}</span><span><small>Почта</small><b>{{ agency.email }}</b></span></li>
+        </ul>
+        <div class="sched">
+          <p class="label">Когда отвечаем, по Москве</p>
+          <p class="sched__row{{ ' is-today' if status.wd not in [0, 6] }}" data-sched="weekday"><span>Понедельник – пятница</span><b>{{ sched.weekday[0] }}:00 – {{ sched.weekday[1] }}:00</b></p>
+          <p class="sched__row{{ ' is-today' if status.wd in [0, 6] }}" data-sched="weekend"><span>Суббота и воскресенье</span><b>{{ sched.weekend[0] }}:00 – {{ sched.weekend[1] }}:00</b></p>
+          <p class="status{{ ' is-open' if status.open }}" data-status><i aria-hidden="true"></i><span>{{ status_text }}</span></p>
+        </div>
+      </div>
+
+      <div class="formcard" id="lead">
+        <form class="form" id="lead-form" method="post" action="{{ '' if demo else url_for('site.lead_form') }}" novalidate>
+          {# Копия параметров сметы: пригодится, если в браузере выключен JavaScript #}
+          <input type="hidden" name="calc" value="1">
+          <input type="hidden" name="f" value="{{ est.format.id }}" data-mirror="format">
+          <input type="hidden" name="g" value="{{ est.guests }}" data-mirror="guests">
+          <input type="hidden" name="h" value="{{ est.hours }}" data-mirror="hours">
+          <input type="hidden" name="l" value="{{ est.level.id }}" data-mirror="level">
+          <input type="hidden" name="a" value="{{ est.addons | join(',') }}" data-mirror="addons">
+          {% for key in ['utm_source', 'utm_medium', 'utm_campaign'] %}
+          <input type="hidden" name="{{ key }}" value="{{ utm.get(key, '') }}" data-utm="{{ key }}">
+          {% endfor %}
+          {# Ловушка для спам-роботов: люди это поле не видят #}
+          <div class="hp" aria-hidden="true"><label for="lf-website">Сайт компании</label><input id="lf-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+
+          <label class="attach">
+            <input class="attach__input" type="checkbox" name="attach_estimate" value="1" checked>
+            <span class="box">{{ icon('check') }}</span>
+            <span class="attach__text"><b>Приложить мою смету</b><small data-out="attach">{{ est.low | num }} – {{ est.high | money }}. {{ est_text }}</small></span>
+          </label>
+
+          <div class="form__row">
+            <div class="field" data-field="name">
+              <label for="lf-name">Имя</label>
+              <input id="lf-name" name="name" type="text" autocomplete="name" placeholder="Как к вам обращаться" maxlength="80" required aria-describedby="lf-name-err">
+              <p class="field__err" id="lf-name-err" hidden></p>
+            </div>
+            <div class="field" data-field="phone">
+              <label for="lf-phone">Телефон</label>
+              <input id="lf-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required aria-describedby="lf-phone-err">
+              <p class="field__err" id="lf-phone-err" hidden></p>
+            </div>
+          </div>
+          <div class="form__row">
+            <div class="field" data-field="email">
+              <label for="lf-email">Почта <small>необязательно</small></label>
+              <input id="lf-email" name="email" type="email" autocomplete="email" placeholder="name@company.ru" maxlength="120" aria-describedby="lf-email-err">
+              <p class="field__err" id="lf-email-err" hidden></p>
+            </div>
+            <div class="field" data-field="telegram">
+              <label for="lf-telegram">Telegram <small>необязательно</small></label>
+              <input id="lf-telegram" name="telegram" type="text" autocomplete="off" placeholder="@username" maxlength="40" aria-describedby="lf-telegram-err">
+              <p class="field__err" id="lf-telegram-err" hidden></p>
+            </div>
+          </div>
+
+          <fieldset class="field field--group">
+            <legend>Как с вами связаться</legend>
+            <div class="chips">
+              {% for code, title in CHANNELS.items() %}
+              <label class="chip"><input class="chip__input" type="radio" name="channel" value="{{ code }}"{{ ' checked' if loop.first }}><span>{{ title }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          <fieldset class="field field--group">
+            <legend>Когда удобно принять звонок</legend>
+            <div class="chips">
+              {% for code, title in CALL_TIMES.items() %}
+              <label class="chip"><input class="chip__input" type="radio" name="call_time" value="{{ code }}"{{ ' checked' if loop.first }}><span>{{ title }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="lf-message">Комментарий <small>необязательно</small></label>
+            <textarea id="lf-message" name="message" rows="3" maxlength="1000" placeholder="Дата, площадка, пожелания"></textarea>
+          </div>
+
+          <div class="field" data-field="consent">
+            <label class="check">
+              <input class="check__input" type="checkbox" name="consent" value="1" required aria-describedby="lf-consent-err">
+              <span class="box">{{ icon('check') }}</span>
+              <span>Согласен на обработку персональных данных по <a href="{{ privacy_url }}"{% if not demo %} target="_blank" rel="noopener"{% endif %}{% if demo %} data-open-privacy{% endif %}>политике конфиденциальности</a></span>
+            </label>
+            <p class="field__err" id="lf-consent-err" hidden></p>
+          </div>
+
+          <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>Заказать звонок</button>
+          <p class="form__status" role="status" data-form-status hidden></p>
+        </form>
+
+        <div class="success" data-success tabindex="-1" hidden>
+          <span class="success__icon">{{ icon('check') }}</span>
+          <h3>Заявка принята</h3>
+          <p data-success-text></p>
+          <button type="button" class="btn btn--line" data-again>Отправить ещё одну заявку</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="ftr">
+  <div class="wrap ftr__in">
+    <a class="logo" href="#top"><span class="logo__mark">{{ icon('sparkles') }}</span><span class="logo__name">{{ agency.name }}</span></a>
+    <p>© {{ year }} {{ agency.name }}. Цены на сайте ориентировочные и не являются публичной офертой.</p>
+    <p class="ftr__links">
+      {% if demo %}<a href="{{ app_config.repoUrl }}">Код проекта на GitHub</a>{% else %}<a href="{{ privacy_url }}">Политика конфиденциальности</a>{% endif %}
+    </p>
+  </div>
+  {% if demo %}
+  <div class="wrap">
+    <details class="privacy-inline" id="privacy">
+      <summary>Политика конфиденциальности</summary>
+      <div class="prose">{% include "site/_privacy_text.html" %}</div>
+    </details>
+  </div>
+  {% endif %}
+</footer>
+
+<p class="toast" role="status" data-toast hidden></p>
+
+{% if demo %}{% include "site/_demo_panel.html" %}{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script id="app-config" type="application/json">{{ app_config | tojson }}</script>
+{% if inline_assets %}
+{% for script in inline_assets.js %}<script>
+{{ script | safe }}
+</script>
+{% endfor %}
+{% else %}
+<script src="{{ url_for('static', filename='js/engine.js') }}?v={{ asset_version }}" defer></script>
+<script src="{{ url_for('static', filename='js/site.js') }}?v={{ asset_version }}" defer></script>
+{% endif %}
+{% endblock %}

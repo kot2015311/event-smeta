@@ -1,0 +1,73 @@
+{% extends "admin/_layout.html" %}
+{% from "_macros.html" import icon %}
+{% set title = "Цены" %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Цены калькулятора</h1>
+    <p class="page-head__sub">Меняйте цифры и сохраняйте: сайт сразу начнёт считать по-новому. Названия и формулы хранятся в файле <code>core/prices.json</code>.</p>
+  </div>
+</header>
+
+{% if errors %}
+<div class="alert" role="alert">
+  <p><b>Цены не сохранены.</b> Исправьте поля:</p>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="prices">
+  <form class="prices__form" id="prices-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for section in sections %}
+    <section class="card price-section" aria-labelledby="ps-{{ section.id }}">
+      <h2 class="card__title" id="ps-{{ section.id }}">{{ section.title }}</h2>
+      <p class="card__sub">{{ section.hint }}</p>
+      <div class="price-rows">
+        {% for row in section.rows %}
+        <div class="price-row">
+          <p class="price-row__title">{{ row.title }}{% if row.tag %} <span class="tag">{{ row.tag }}</span>{% endif %}{% if row.note %}<small>{{ row.note }}</small>{% endif %}</p>
+          <div class="price-row__fields">
+            {% for f in row.fields %}
+            {%- set fid = f.name | replace('.', '-') -%}
+            <div class="pfield{{ ' is-changed' if f.changed }}">
+              <label for="{{ fid }}">{{ f.label }}</label>
+              <div class="pfield__box">
+                <input id="{{ fid }}" name="{{ f.name }}" type="text" inputmode="decimal" value="{{ f.value }}" autocomplete="off"{% if f.changed %} aria-describedby="{{ fid }}-was"{% endif %}>
+                {% if f.unit %}<span class="pfield__unit">{{ f.unit }}</span>{% endif %}
+              </div>
+              {% if f.changed %}<small class="pfield__was" id="{{ fid }}-was">было {{ f.default }}</small>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </form>
+
+  <aside class="prices__side">
+    <div class="card card--sticky">
+      <h2 class="card__title">Как считает сайт сейчас</h2>
+      <p class="card__sub">Готовые примеры с главной страницы</p>
+      <ul class="examples">
+        {% for ex in examples %}
+        <li><span>{{ ex.title }}</span><b>{{ ex.estimate.low | num }} – {{ ex.estimate.high | money }}</b></li>
+        {% endfor %}
+      </ul>
+      <button class="btn btn--primary btn--block" type="submit" form="prices-form">{{ icon('check') }}<span>Сохранить цены</span></button>
+      {% if has_changes %}
+      <form method="post" action="{{ url_for('admin.prices_reset') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn--line btn--block" type="submit" data-confirm="Нажмите ещё раз, чтобы сбросить">{{ icon('refresh') }}<span>Вернуть стандартные цены</span></button>
+      </form>
+      <p class="muted small">Изменённые поля подсвечены, под ними видно прежнее значение.</p>
+      {% else %}
+      <p class="muted small">Сейчас действуют стандартные цены из prices.json.</p>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

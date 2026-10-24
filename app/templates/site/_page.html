@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{# Простая внутренняя страница: шапка с логотипом, контент, подвал #}
+{% from "_macros.html" import icon %}
+{% block body %}
+<header class="hdr">
+  <div class="wrap hdr__in">
+    <a class="logo" href="{{ url_for('site.index') }}"><span class="logo__mark">{{ icon('sparkles') }}</span><span class="logo__name">{{ agency.name }}</span></a>
+    <div class="hdr__end"><a class="btn btn--primary btn--sm" href="{{ url_for('site.index') }}#calc">Рассчитать смету</a></div>
+  </div>
+</header>
+<main class="page">
+  <div class="wrap page__in">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+<footer class="ftr">
+  <div class="wrap ftr__in">
+    <a class="logo" href="{{ url_for('site.index') }}"><span class="logo__mark">{{ icon('sparkles') }}</span><span class="logo__name">{{ agency.name }}</span></a>
+    <p class="ftr__links"><a href="{{ url_for('site.privacy') }}">Политика конфиденциальности</a></p>
+  </div>
+</footer>
+{% endblock %}

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Зависимости
+        run: pip install -r requirements-dev.txt
+
+      - name: Линтер и форматирование
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Тесты (Python и сверка JS-движка с эталоном)
+        run: pytest
+
+      - name: Демо-версия собирается
+        run: flask build-demo --out dist/demo

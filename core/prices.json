@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "currency": "₽",
+  "range": { "low": 0.9, "high": 1.12 },
+  "guests": { "min": 10, "max": 500, "step": 5, "base": 50, "exponent": 0.7, "chips": [20, 50, 100, 200, 300, 500] },
+  "defaults": { "format": "corporate", "guests": 50, "hours": 4, "level": "comfort", "addons": ["host", "av", "catering"] },
+  "formats": [
+    { "id": "business", "icon": "briefcase", "title": "Деловое мероприятие", "desc": "Конференции, семинары, презентации, форумы", "min": 30000, "max": 80000 },
+    { "id": "corporate", "icon": "wine", "title": "Корпоратив", "desc": "Новый год, день компании, тематические вечеринки", "min": 150000, "max": 500000 },
+    { "id": "offsite", "icon": "tent", "title": "Выездное мероприятие", "desc": "Выезд за город, стратегические сессии, фестивали для команды", "min": 140000, "max": 300000 },
+    { "id": "pr", "icon": "megaphone", "title": "PR и маркетинг", "desc": "Запуск продукта, пресс-события, промоакции, спецпроекты", "min": 120000, "max": 250000 },
+    { "id": "team", "icon": "trophy", "title": "Тимбилдинг", "desc": "Командные игры, квесты, спортивные программы", "min": 60000, "max": 180000 }
+  ],
+  "levels": [
+    { "id": "standard", "title": "Стандарт", "tag": "Бюджетно", "desc": "Проверенные подрядчики, базовое оформление, чёткая программа", "pos": 0, "mult": 1 },
+    { "id": "comfort", "title": "Комфорт", "tag": "Оптимально", "desc": "Расширенная программа, продуманный декор и техника", "pos": 0.45, "mult": 1.4 },
+    { "id": "premium", "title": "Премиум", "tag": "Максимум", "desc": "Авторская концепция, лучшие подрядчики, максимум внимания", "pos": 1, "mult": 2 }
+  ],
+  "hours": [
+    { "h": 2, "label": "2 часа", "k": 0.9 },
+    { "h": 4, "label": "4 часа", "k": 1 },
+    { "h": 6, "label": "6 часов", "k": 1.15 },
+    { "h": 8, "label": "8 часов", "k": 1.3 }
+  ],
+  "addons": [
+    { "id": "venue", "icon": "pin", "title": "Площадка", "unit": "guest", "price": [800, 1400, 2600], "min": 40000, "hint_unit": "/гость", "note": "подбор и аренда" },
+    { "id": "host", "icon": "mic", "title": "Ведущий", "unit": "hour", "price": 3000, "level_mult": true, "hint_unit": "/час", "note": "{h} ч работы" },
+    { "id": "show", "icon": "sparkles", "title": "Шоу и артисты", "unit": "event", "price": [40000, 90000, 250000], "note": ["диджей или музыкант", "кавер-группа или шоу", "артисты и спецэффекты"] },
+    { "id": "workshop", "icon": "palette", "title": "Мастер-класс", "unit": "guest", "price": [2000, 2600, 3500], "min": 30000, "hint_unit": "/гость", "note": "на {guests}" },
+    { "id": "av", "icon": "speaker", "title": "Свет и звук", "unit": "guest", "base": 30000, "included": 50, "price": 300, "level_mult": true, "note": "комплект на {guests}" },
+    { "id": "design", "icon": "layout", "title": "Оформление и фирменный стиль", "unit": "event", "price": [35000, 90000, 210000], "note": ["графика и навигация", "базовый фирменный стиль", "расширенный стиль и декор"] },
+    { "id": "catering", "icon": "utensils", "title": "Кейтеринг", "unit": "guest", "price": 1000, "level_mult": true, "min": 50000, "hint_unit": "/гость", "note": "на {guests}" },
+    { "id": "gifts", "icon": "gift", "title": "Подарки с логотипом", "unit": "guest", "price": [1370, 2200, 4900], "discounts": [[300, 0.3], [150, 0.2], [50, 0.1]], "hint_unit": "/шт.", "note": "{g} шт.{discount}" },
+    { "id": "media", "icon": "camera", "title": "Фото и видео", "unit": "event", "price": [25000, 45000, 120000], "note": ["репортаж и ролик", "расширенная съёмка и фильм", "премиальный продакшн"] },
+    { "id": "transfer", "icon": "bus", "title": "Трансфер", "unit": "group", "group_size": 50, "price": 25000, "level_mult": true, "hint_unit": "/автобус", "words": ["автобус", "автобуса", "автобусов"], "note": "{n} {n_word}, туда и обратно" },
+    { "id": "coord", "icon": "clipboard", "title": "Координатор", "unit": "group", "group_size": 100, "price": 4000, "level_mult": true, "hint_unit": "/день", "words": ["координатор", "координатора", "координаторов"], "note": "{n} {n_word} на день" },
+    { "id": "promo", "icon": "users", "title": "Промоперсонал", "unit": "staff_hour", "group_size": 40, "min_groups": 2, "price": 500, "level_mult": true, "hint_unit": "/час", "words": ["человек", "человека", "человек"], "note": "{n} {n_word} × {h} ч" }
+  ],
+  "presets": [
+    { "id": "conference", "title": "Конференция на 80 человек", "state": { "format": "business", "guests": 80, "hours": 6, "level": "comfort", "addons": ["host", "av", "catering", "coord", "media"] } },
+    { "id": "new-year", "title": "Новогодний корпоратив на 80 человек", "state": { "format": "corporate", "guests": 80, "hours": 4, "level": "standard", "addons": ["host", "show", "av", "catering", "gifts"] } },
+    { "id": "offsite", "title": "Выезд команды на 40 человек", "state": { "format": "offsite", "guests": 40, "hours": 8, "level": "standard", "addons": ["workshop", "catering", "transfer", "coord", "media"] } }
+  ],
+  "schedule": { "tz": "Europe/Moscow", "tz_label": "МСК", "weekday": [8, 17], "weekend": [10, 15] }
+}

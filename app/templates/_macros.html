@@ -1,0 +1,4 @@
+{# Иконка из app/icons.py. С подписью — для экранного диктора, без неё — только украшение #}
+{% macro icon(name, cls="ico", label=None) -%}
+<svg class="{{ cls }}" viewBox="0 0 24 24" {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true"{% endif %} focusable="false"><path d="{{ ICONS[name] }}"/></svg>
+{%- endmacro %}

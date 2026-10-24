@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% set stylesheet = "admin.css" %}
+{% set page_title = "Вход в CRM · " ~ agency.name %}
+{% set page_description = "Вход для менеджеров" %}
+{% block meta %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block body %}
+<main class="login">
+  <div class="login__card">
+    <span class="side__mark">{{ icon('sparkles') }}</span>
+    <h1>Вход для менеджеров</h1>
+    {% if enabled %}
+    <form method="post" class="login__form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus{% if error %} aria-invalid="true" aria-describedby="login-error"{% endif %}>
+      {% if error %}<p class="login__error" id="login-error" role="alert">{{ error }}</p>{% endif %}
+      <button class="btn btn--primary" type="submit">Войти</button>
+    </form>
+    {% else %}
+    <p class="login__off">Вход выключен: пароль не задан. Добавьте строку <code>ADMIN_PASSWORD=ваш-пароль</code> в файл <code>.env</code> и перезапустите сайт.</p>
+    {% endif %}
+    <a class="login__back" href="{{ url_for('site.index') }}">{{ icon('arrow-left') }}<span>На сайт</span></a>
+  </div>
+</main>
+{% endblock %}

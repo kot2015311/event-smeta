@@ -1,0 +1,25 @@
+{% extends "site/_page.html" %}
+{% from "_macros.html" import icon %}
+{% set page_title = ("Заявка принята" if result.ok else "Проверьте заявку") ~ ": " ~ agency.name %}
+{% block content %}
+<article class="prose result-page">
+  {% if result.ok %}
+  <span class="success__icon">{{ icon('check') }}</span>
+  <h1>Заявка принята</h1>
+  <p class="prose__lead">{{ result.message }}</p>
+  {% if result.estimate %}
+  <p>Ваша смета: {{ result.estimate.low | num }} – {{ result.estimate.high | money }}.</p>
+  {% endif %}
+  <p><a class="btn btn--line" href="{{ url_for('site.index') }}">Вернуться на сайт</a></p>
+  {% else %}
+  <h1>Проверьте заявку</h1>
+  <p class="prose__lead">{{ result.message }}</p>
+  {% if result.errors %}
+  <ul class="errors">
+    {% for field, text in result.errors.items() %}<li>{{ text }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <p><a class="btn btn--primary" href="{{ url_for('site.index') }}#contact">Вернуться к форме</a></p>
+  {% endif %}
+</article>
+{% endblock %}

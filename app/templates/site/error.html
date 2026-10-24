@@ -1,0 +1,10 @@
+{% extends "site/_page.html" %}
+{% set page_title = title ~ ": " ~ agency.name %}
+{% block content %}
+<article class="prose result-page">
+  <p class="error-code">{{ code }}</p>
+  <h1>{{ title }}</h1>
+  {% if code == 404 %}<p class="prose__lead">Такой страницы нет. Возможно, ссылка устарела.</p>{% endif %}
+  <p><a class="btn btn--primary" href="{{ url_for('site.index') }}">На главную</a></p>
+</article>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "admin/_layout.html" %}
+{% from "_macros.html" import icon %}
+{% from "admin/_parts.html" import leads_table, status_pill %}
+{% set title = "Обзор" %}
+
+{% macro meter(items, total_label) -%}
+{% if items %}
+{%- set top = items[0][1] -%}
+<ul class="meter">
+  {% for name, count in items %}
+  <li>
+    <span class="meter__name">{{ name }}</span>
+    <span class="meter__count">{{ count }}</span>
+    {#- Полоску рисуем SVG-атрибутами: встроенные style="" запрещены политикой безопасности (CSP) -#}
+    <svg class="meter__bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true"><rect class="meter__track" width="100" height="6" rx="3"></rect><rect class="meter__fill" width="{{ (count / top * 100) | round(1) }}" height="6" rx="3"></rect></svg>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">{{ total_label }}</p>
+{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Обзор</h1>
+    <p class="page-head__sub">Цифры за последние 7 дней, если не сказано другое</p>
+  </div>
+  <a class="btn btn--line" href="{{ url_for('admin.leads', status='new') }}">{{ icon('inbox') }}<span>Новые заявки</span></a>
+</header>
+
+<section class="kpis" aria-label="Главные цифры">
+  <div class="kpi{{ ' kpi--alert' if week.waiting }}">
+    <p class="kpi__label">Ждут звонка сейчас</p>
+    <p class="kpi__value">{{ week.waiting }}</p>
+    <p class="kpi__note">{% if week.waiting %}<a href="{{ url_for('admin.leads', status='new') }}">Открыть список</a>{% else %}Все обработаны{% endif %}</p>
+  </div>
+  <div class="kpi">
+    <p class="kpi__label">Заявок за 7 дней</p>
+    <p class="kpi__value">{{ week.total }}</p>
+    <p class="kpi__note">за 30 дней: {{ month.total }}</p>
+  </div>
+  <div class="kpi">
+    <p class="kpi__label">Договоров за 7 дней</p>
+    <p class="kpi__value">{{ week.won }}</p>
+    <p class="kpi__note">конверсия {{ week.conversion | percent }}</p>
+  </div>
+  <div class="kpi">
+    <p class="kpi__label">Средняя смета</p>
+    <p class="kpi__value">{{ week.avg_estimate | money if week.avg_estimate else '—' }}</p>
+    <p class="kpi__note">договоры на {{ week.won_sum | money }}</p>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="card" aria-labelledby="chart-title">
+    <h2 class="card__title" id="chart-title">Заявки по дням</h2>
+    <p class="card__sub">Последние 14 дней, по московскому времени</p>
+    {%- set x0, x1, y0, y1 = 34, 696, 14, 172 -%}
+    {%- set slot = (x1 - x0) / (chart.bars | length) -%}
+    <svg class="chart" viewBox="0 0 700 216" role="img" aria-label="Заявки по дням за 14 дней: {% for b in chart.bars %}{{ b.day }} — {{ b.count }}{{ ', ' if not loop.last }}{% endfor %}">
+      {% for t in chart.ticks %}
+      {%- set y = y1 - (t / chart.ceiling) * (y1 - y0) -%}
+      <line class="chart__grid" x1="{{ x0 }}" x2="{{ x1 }}" y1="{{ y | round(1) }}" y2="{{ y | round(1) }}"></line>
+      <text class="chart__tick" x="{{ x0 - 8 }}" y="{{ (y + 4) | round(1) }}" text-anchor="end">{{ t }}</text>
+      {% endfor %}
+      {% for b in chart.bars %}
+      {%- set h = b.share * (y1 - y0) -%}
+      {%- set bx = x0 + loop.index0 * slot + (slot - 24) / 2 -%}
+      {% if b.count %}
+      <rect class="chart__bar{{ ' chart__bar--today' if loop.last }}" x="{{ bx | round(1) }}" y="{{ (y1 - h) | round(1) }}" width="24" height="{{ h | round(1) }}" rx="5"></rect>
+      <text class="chart__value" x="{{ (bx + 12) | round(1) }}" y="{{ (y1 - h - 6) | round(1) }}" text-anchor="middle">{{ b.count }}</text>
+      {% endif %}
+      <text class="chart__label{{ ' chart__label--weekend' if b.weekend }}" x="{{ (bx + 12) | round(1) }}" y="192" text-anchor="middle">{{ b.weekday }}</text>
+      <text class="chart__date" x="{{ (bx + 12) | round(1) }}" y="208" text-anchor="middle">{{ b.day }}</text>
+      {% endfor %}
+    </svg>
+  </section>
+
+  <section class="card" aria-labelledby="waiting-title">
+    <h2 class="card__title" id="waiting-title">Ждут звонка</h2>
+    <p class="card__sub">Самые свежие новые заявки</p>
+    {% if waiting %}
+    <ul class="queue">
+      {% for lead in waiting %}
+      <li>
+        <a href="{{ url_for('admin.lead', lead_id=lead.id) }}">
+          <span class="queue__main"><b>№{{ lead.id }} · {{ lead.name }}</b><small>{% if lead.estimate %}{{ lead.estimate.format.title }}, {{ lead.estimate.guests | guests_nom }} · {{ lead.estimate | short_range }}{% else %}без сметы{% endif %}</small></span>
+          <span class="queue__time">{{ lead.created_at | dt('%d.%m %H:%M') }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">Новых заявок нет. Как только клиент отправит форму, она появится здесь и в Telegram.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid-3">
+  <section class="card" aria-labelledby="formats-title">
+    <h2 class="card__title" id="formats-title">Форматы</h2>
+    <p class="card__sub">Заявки со сметой за 30 дней</p>
+    {{ meter(month.top_formats, "Пока нет заявок со сметой") }}
+  </section>
+  <section class="card" aria-labelledby="addons-title">
+    <h2 class="card__title" id="addons-title">Популярные услуги</h2>
+    <p class="card__sub">Сколько раз отмечали за 30 дней</p>
+    {{ meter(month.top_addons, "Пока никто не отмечал услуги") }}
+  </section>
+  <section class="card" aria-labelledby="sources-title">
+    <h2 class="card__title" id="sources-title">Откуда приходят</h2>
+    <p class="card__sub">Метка utm_source в ссылке, 30 дней</p>
+    {{ meter(month.sources, "Заявок пока нет") }}
+  </section>
+</div>
+
+<section class="card" aria-labelledby="latest-title">
+  <div class="card__head">
+    <div>
+      <h2 class="card__title" id="latest-title">Последние заявки</h2>
+    </div>
+    <a class="link" href="{{ url_for('admin.leads') }}">Все заявки</a>
+  </div>
+  {{ leads_table(latest, "Заявок пока нет. Отправьте тестовую с сайта или выполните flask seed-demo.") }}
+</section>
+{% endblock %}

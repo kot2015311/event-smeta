@@ -1,0 +1,94 @@
+{% extends "admin/_layout.html" %}
+{% from "_macros.html" import icon %}
+{% from "admin/_parts.html" import status_pill %}
+{% set title = "Заявка №" ~ lead.id %}
+{% set est = lead.estimate %}
+
+{% block content %}
+<a class="back" href="{{ url_for('admin.leads') }}">{{ icon('arrow-left') }}<span>Все заявки</span></a>
+
+<header class="page-head">
+  <div>
+    <h1>Заявка №{{ lead.id }} {{ status_pill(lead.status) }}</h1>
+    <p class="page-head__sub">Пришла {{ lead.created_at | dt }}{% if lead.source == 'sample' %} · тестовая{% endif %}{% if tg_enabled and lead.tg_message_id %} · карточка в Telegram обновляется сама{% endif %}</p>
+  </div>
+</header>
+
+<form class="status-bar" method="post" action="{{ url_for('admin.lead_status', lead_id=lead.id) }}" aria-label="Сменить статус">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for code in STATUS_ORDER %}
+  <button class="status-btn status-btn--{{ code }}" type="submit" name="status" value="{{ code }}"{% if lead.status == code %} aria-pressed="true" disabled{% else %} aria-pressed="false"{% endif %}>
+    {% if lead.status == code %}{{ icon('check') }}{% endif %}<span>{{ STATUSES[code].title }}</span>
+  </button>
+  {% endfor %}
+</form>
+
+<div class="grid-2 grid-2--lead">
+  <section class="card" aria-labelledby="client-title">
+    <h2 class="card__title" id="client-title">Клиент</h2>
+    <dl class="facts-list">
+      <div><dt>Имя</dt><dd><b>{{ lead.name }}</b></dd></div>
+      <div>
+        <dt>Телефон</dt>
+        <dd class="copyable">
+          <a href="tel:{{ lead.phone }}">{{ lead.phone | phone }}</a>
+          <button class="icon-btn" type="button" data-copy="{{ lead.phone | phone }}" aria-label="Скопировать телефон">{{ icon('copy') }}</button>
+        </dd>
+      </div>
+      {% if lead.telegram %}<div><dt>Telegram</dt><dd><a href="https://t.me/{{ lead.telegram | replace('@', '') }}" target="_blank" rel="noopener">{{ lead.telegram }}</a></dd></div>{% endif %}
+      {% if lead.email %}<div><dt>Почта</dt><dd><a href="mailto:{{ lead.email }}">{{ lead.email }}</a></dd></div>{% endif %}
+      <div><dt>Как связаться</dt><dd>{{ CHANNELS.get(lead.channel, lead.channel) }}</dd></div>
+      <div><dt>Когда удобно</dt><dd>{{ CALL_TIMES.get(lead.call_time, lead.call_time) }}</dd></div>
+      {% if lead.utm_source or lead.utm_campaign %}<div><dt>Источник</dt><dd>{{ lead.utm_source or '—' }}{% if lead.utm_medium %} / {{ lead.utm_medium }}{% endif %}{% if lead.utm_campaign %} / {{ lead.utm_campaign }}{% endif %}</dd></div>{% endif %}
+    </dl>
+    {% if lead.message %}
+    <blockquote class="quote">{{ lead.message }}</blockquote>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="estimate-title">
+    <h2 class="card__title" id="estimate-title">Смета клиента</h2>
+    {% if est %}
+    <p class="card__sub">{{ est.format.title }}, «{{ est.level.title }}», {{ est.guests | guests_nom }}, {{ est.hours | hours_label }}</p>
+    <p class="estimate__range">{{ est.low | num }} – {{ est.high | money }}</p>
+    <p class="estimate__sub">≈ {{ est.total | money }} · {{ est.per_guest | money }} на гостя</p>
+    <table class="lines">
+      <tbody>
+        {% for line in est.lines %}
+        <tr><th scope="row">{{ line.title }}<small>{{ line.note }}</small></th><td class="num">{{ line.sum | money }}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Итого</th><td class="num">{{ est.total | money }}</td></tr></tfoot>
+    </table>
+    <p class="muted small">Снимок на момент заявки: если цены потом поменяли, эта смета не изменится.</p>
+    {% else %}
+    <p class="empty">Клиент не приложил смету. Уточните формат, число гостей и бюджет по телефону.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card" id="history" aria-labelledby="history-title">
+  <h2 class="card__title" id="history-title">История и заметки</h2>
+  <form class="note-form" method="post" action="{{ url_for('admin.lead_note', lead_id=lead.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="sr-only" for="note">Заметка</label>
+    <textarea id="note" name="text" rows="2" maxlength="2000" placeholder="Например: перезвонить в среду после 14:00" required></textarea>
+    <button class="btn btn--primary" type="submit">{{ icon('note') }}<span>Сохранить заметку</span></button>
+  </form>
+  <ol class="timeline">
+    {% for e in events %}
+    <li class="timeline__item timeline__item--{{ e.kind }}">
+      <span class="timeline__dot" aria-hidden="true"></span>
+      <div>
+        <p class="timeline__text">
+          {% if e.kind == 'status' %}Статус: {{ e.old_status | status_title }} → <b>{{ e.new_status | status_title }}</b>
+          {% elif e.kind == 'note' %}{{ e.text }}
+          {% else %}{{ e.text or 'Заявка создана' }}{% endif %}
+        </p>
+        <p class="timeline__meta">{{ e.created_at | dt }}{% if e.actor %} · {{ e.actor }}{% endif %}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

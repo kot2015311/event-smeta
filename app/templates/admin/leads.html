@@ -1,0 +1,52 @@
+{% extends "admin/_layout.html" %}
+{% from "_macros.html" import icon %}
+{% from "admin/_parts.html" import leads_table %}
+{% set title = "Заявки" %}
+
+{% macro tab(code, label) -%}
+{%- set args = dict(filters) -%}{%- set _ = args.update({'status': code}) -%}
+<a class="tabs__item" href="{{ url_for('admin.leads', **args) }}"{% if filters.status == code %} aria-current="page"{% endif %}>{{ label }} <span class="tabs__count">{{ counts[code or 'all'] }}</span></a>
+{%- endmacro %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Заявки</h1>
+    <p class="page-head__sub">Найдено: {{ total }}</p>
+  </div>
+  <a class="btn btn--line" href="{{ url_for('admin.export_csv', **filters) }}">{{ icon('download') }}<span>Выгрузить в Excel</span></a>
+</header>
+
+<nav class="tabs" aria-label="Статус заявки">
+  {{ tab('', 'Все') }}
+  {{ tab('open', 'В работе и новые') }}
+  {% for code in STATUS_ORDER %}{{ tab(code, STATUSES[code].title) }}{% endfor %}
+</nav>
+
+<form class="filters" method="get" role="search">
+  <input type="hidden" name="status" value="{{ filters.status }}">
+  <div class="filters__search">
+    {{ icon('search') }}
+    <label class="sr-only" for="q">Поиск</label>
+    <input id="q" name="q" type="search" value="{{ filters.q }}" placeholder="Имя, телефон, почта или №">
+  </div>
+  <label class="sr-only" for="format">Формат</label>
+  <select id="format" name="format" data-autosubmit>
+    <option value="">Все форматы</option>
+    {% for f in formats %}<option value="{{ f.id }}"{{ ' selected' if filters.format == f.id }}>{{ f.title }}</option>{% endfor %}
+  </select>
+  <button class="btn btn--primary" type="submit">Найти</button>
+  {% if filters.q or filters.format %}<a class="link" href="{{ url_for('admin.leads', status=filters.status) }}">Сбросить</a>{% endif %}
+</form>
+
+{{ leads_table(leads, "По этим условиям заявок нет") }}
+
+{% if pages > 1 %}
+<nav class="pager" aria-label="Страницы">
+  {%- set args = dict(filters) -%}
+  {% if page > 1 %}{% set _ = args.update({'page': page - 1}) %}<a class="btn btn--line btn--sm" href="{{ url_for('admin.leads', **args) }}">Назад</a>{% endif %}
+  <span>Страница {{ page }} из {{ pages }}</span>
+  {% if page < pages %}{% set _ = args.update({'page': page + 1}) %}<a class="btn btn--line btn--sm" href="{{ url_for('admin.leads', **args) }}">Дальше</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
